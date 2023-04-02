@@ -128,12 +128,12 @@ class DeepZoomGenerator:
         )
 
         # Slide background color
-        self._bg_color = '#' + self._osr.properties.get(
-            openslide.PROPERTY_NAME_BACKGROUND_COLOR, 'ffffff'
+        self._bg_color = "#" + self._osr.properties.get(
+            openslide.PROPERTY_NAME_BACKGROUND_COLOR, "ffffff"
         )
 
     def __repr__(self):
-        return '{}({!r}, tile_size={!r}, overlap={!r}, limit_bounds={!r})'.format(
+        return "{}({!r}, tile_size={!r}, overlap={!r}, limit_bounds={!r})".format(
             self.__class__.__name__,
             self._osr,
             self._z_t_downsample,
@@ -161,26 +161,28 @@ class DeepZoomGenerator:
         """The total number of Deep Zoom tiles in the image."""
         return sum(t_cols * t_rows for t_cols, t_rows in self._t_dimensions)
 
-    def get_tile(self, level, address):
+    def get_tile(self, level, address, method="fill"):
         """Return an RGB PIL.Image for a tile.
 
         level:     the Deep Zoom level.
-        address:   the address of the tile within the level as a (col, row)
-                   tuple."""
+        address:   the address of the tile within the level as a (col, row) tuple.
+        method:    "fill" - fills the space of partial images and the target image size
+                   "rescale" - scales partial images to the target size
+        """
 
         # Read tile
         args, z_size = self._get_tile_info(level, address)
         tile = self._osr.read_region(*args)
 
         # Apply on solid background
-        bg = Image.new('RGB', tile.size, self._bg_color)
+        bg = Image.new("RGB", tile.size, self._bg_color)
         tile = Image.composite(tile, bg, tile)
 
         # Scale to the correct size
         if tile.size != z_size:
             # Image.Resampling added in Pillow 9.1.0
             # Image.LANCZOS removed in Pillow 10
-            tile.thumbnail(z_size, getattr(Image, 'Resampling', Image).LANCZOS)
+            tile.thumbnail(tile.size, getattr(Image, "Resampling", Image).LANCZOS)
 
         return tile
 
@@ -262,15 +264,15 @@ class DeepZoomGenerator:
 
         format:    the format of the individual tiles ('png' or 'jpeg')"""
         image = Element(
-            'Image',
+            "Image",
             TileSize=str(self._z_t_downsample),
             Overlap=str(self._z_overlap),
             Format=format,
-            xmlns='http://schemas.microsoft.com/deepzoom/2008',
+            xmlns="http://schemas.microsoft.com/deepzoom/2008",
         )
         w, h = self._l0_dimensions
-        SubElement(image, 'Size', Width=str(w), Height=str(h))
+        SubElement(image, "Size", Width=str(w), Height=str(h))
         tree = ElementTree(element=image)
         buf = BytesIO()
-        tree.write(buf, encoding='UTF-8')
-        return buf.getvalue().decode('UTF-8')
+        tree.write(buf, encoding="UTF-8")
+        return buf.getvalue().decode("UTF-8")
